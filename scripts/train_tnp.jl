@@ -7,8 +7,9 @@ using PythonCall
 using PyTNP
 
 # INPUTS
-const DIM_MODEL = ARGS[1]
-const DIM_FEEDFORWARD = 4 * DIM_MODEL
+const DIM_MODEL = parse(Int, ARGS[1]) # e.g. 64
+const DIM_FEEDFORWARD = 2 * DIM_MODEL
+println("Starting TNP training with dim_model = $DIM_MODEL, dim_feedforward = $DIM_FEEDFORWARD")
 
 params = Dict(
     # Universe Settings
@@ -18,18 +19,18 @@ params = Dict(
     # Model Settings
     # :dim_model => 128,
     :dim_model => DIM_MODEL,
-    :embedder_depth => 2,
+    :embedder_depth => 4,
     :predictor_depth => 2,
-    :num_heads => 4,
-    :encoder_depth => 2,
-    # :dim_feedforward => 512,
+    :num_heads => 8,
+    :encoder_depth => 6,
+    # :dim_feedforward => 128,
     :dim_feedforward => DIM_FEEDFORWARD,
-    :dropout => 0.1,
-    :device => "cuda",
+    :dropout => 0.0,
+    :device => "mps",
 
     # Prior Data Settings
     :batch_size => 32,
-    :num_total_points_range => (2, 101),
+    :num_total_points_range => (64, 256),
     :x_range => (-1.0, 1.0),
     :kernel_length_scale_prior => (0.1, 2.0),
     :kernel_amplitude_prior => (0.1, 1.0),
