@@ -1,7 +1,13 @@
 name = "tnp_benchmarks"
 authors = ["Šimon Soldát"]
-[compat]
-julia = "1.12.4"
-DrWatson = "2.19.1"
+
 [deps]
+BOSIP = "631834c2-07fe-4b6b-876a-15b6a4e37445"
+CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+PyTNP = "85852e71-9429-41d1-823f-6fff6908b212"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+
+[compat]
+DrWatson = "2.19.1"
+julia = "1.12.4"
