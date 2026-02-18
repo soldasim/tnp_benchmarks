@@ -83,7 +83,7 @@ function _get_trunc_x_prior()
     return truncated(prior; lower=bounds[1], upper=bounds[2])
 end
 
-# _get_x_prior() = Product(fill(Normal(0., 1/3), 2))
-_get_x_prior() = Product(fill(Uniform(-1., 1.), 2))
+_get_x_prior() = Product(fill(Normal(0., 1/3), 2))
+# _get_x_prior() = Product(fill(Uniform(-1., 1.), 2))
 
 end # module ABProblemModule

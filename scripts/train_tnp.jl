@@ -6,10 +6,13 @@ ENV["JULIA_PYTHONCALL_EXE"] = read(`which python`, String) |> strip
 using PythonCall
 using PyTNP
 
-# INPUTS
+
+## Inputs
 const DIM_MODEL = parse(Int, ARGS[1]) # e.g. 64
 const DIM_FEEDFORWARD = 2 * DIM_MODEL
-println("Starting TNP training with dim_model = $DIM_MODEL, dim_feedforward = $DIM_FEEDFORWARD")
+const NUM_ITERATIONS = parse(Int, ARGS[2]) # e.g. 100_000
+
+println("Training TNP with dim_model = $DIM_MODEL, num_iterations = $NUM_ITERATIONS")
 
 params = Dict(
     # Universe Settings
@@ -26,7 +29,7 @@ params = Dict(
     # :dim_feedforward => 128,
     :dim_feedforward => DIM_FEEDFORWARD,
     :dropout => 0.0,
-    :device => "mps",
+    :device => "cuda",
 
     # Prior Data Settings
     :batch_size => 32,
@@ -37,10 +40,11 @@ params = Dict(
     :noise_std => 1e-8,
 
     # Training Settings
-    :num_iterations => 10_000,
+    :num_iterations => NUM_ITERATIONS,
 )
 
-# Initialize TNP
+
+## Initialize TNP
 model = init_model(;
     x_dim = params[:x_dim],
     y_dim = params[:y_dim],
@@ -54,7 +58,8 @@ model = init_model(;
     device = params[:device],
 )
 
-# Initialize Data Sampler
+
+## Initialize Data Sampler
 gp_sampler = pyimport("gp_sampler")
 sample_fn = gp_sampler.make_gp_sampler(;
     batch_size = params[:batch_size],
@@ -67,22 +72,34 @@ sample_fn = gp_sampler.make_gp_sampler(;
     y_dim = params[:y_dim],
 )
 
-# Train TNP
-_, losses, avg_losses = train_model!(model, sample_fn;
+
+## Train TNP
+@info "Training TNP ..."
+
+lrs, losses, avg_losses = train_model!(model, sample_fn;
     num_iterations = params[:num_iterations],
     print_freq = 100,
     model.device,
+    save_path = nothing,
 )
 
-# Save parameters and results
+
+## Save Results
+@info "Saving results ..."
+
 run_name = savename(params)
-params_file = run_name * "_params.jld2"
-model_file = run_name * "_model.pt"
-params_path = joinpath(datadir("params"), params_file)
-model_path = joinpath(datadir("models"), model_file)
+model_path = joinpath(datadir("train"), "model_" *run_name * ".pt")
+data_path = joinpath(datadir("train"), "data_" * run_name * ".jld2")
 
-@tag_with_deps! params
-params[:model_path] = model_path
+data = Dict(
+    :model_params => params,
+    :lr => lrs,
+    :loss_history => losses,
+    :avg_loss_history => avg_losses,
+    :model_path => model_path,
+    :data_path => data_path,
+)
+@tag_with_deps! data
 
-wsave(params_path, params)
+wsave(data_path, data)
 save_model(model, model_path)

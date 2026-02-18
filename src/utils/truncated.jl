@@ -1,4 +1,3 @@
-using Distributions
 
 function Distributions.truncated(d::Product; lower, upper)
     @assert length(d) == length(lower) == length(upper)
