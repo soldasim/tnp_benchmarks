@@ -1,20 +1,29 @@
 using DrWatson
 @quickactivate "tnp_benchmarks"
-include(srcdir("tag.jl"))
 
 ENV["JULIA_PYTHONCALL_EXE"] = read(`which python`, String) |> strip
 using PythonCall
 using PyTNP
 
+include(srcdir("include.jl"))
+
 
 ## Inputs
-const DIM_MODEL = parse(Int, ARGS[1]) # e.g. 64
+const DIM_MODEL = 128
 const DIM_FEEDFORWARD = 2 * DIM_MODEL
-const NUM_ITERATIONS = parse(Int, ARGS[2]) # e.g. 100_000
+const NUM_ITERATIONS = 100_000
+
+# const DIM_MODEL = parse(Int, ARGS[1]) # e.g. 128
+# const DIM_FEEDFORWARD = 2 * DIM_MODEL
+# const NUM_ITERATIONS = parse(Int, ARGS[4]) # e.g. 10_000
 
 println("Training TNP with dim_model = $DIM_MODEL, num_iterations = $NUM_ITERATIONS")
 
 params = Dict(
+    # TODO
+    # :note => "TEST",
+    :note => "v1+lhc-sampler",
+
     # Universe Settings
     :x_dim => 2,
     :y_dim => 1,
@@ -32,12 +41,9 @@ params = Dict(
     :device => "cuda",
 
     # Prior Data Settings
-    :batch_size => 32,
-    :num_total_points_range => (64, 256),
-    :x_range => (-1.0, 1.0),
-    :kernel_length_scale_prior => (0.1, 2.0),
-    :kernel_amplitude_prior => (0.1, 1.0),
-    :noise_std => 1e-8,
+    # TODO
+    # :sample_fn => :default_sampler,
+    :sample_fn => :lhc_data_sampler,
 
     # Training Settings
     :num_iterations => NUM_ITERATIONS,
@@ -56,21 +62,13 @@ model = init_model(;
     dim_feedforward = params[:dim_feedforward],
     dropout = params[:dropout],
     device = params[:device],
+    # base_model = :default,
+    base_model = :structured,
 )
 
 
 ## Initialize Data Sampler
-gp_sampler = pyimport("gp_sampler")
-sample_fn = gp_sampler.make_gp_sampler(;
-    batch_size = params[:batch_size],
-    num_total_points_range = params[:num_total_points_range],
-    x_range = params[:x_range],
-    kernel_length_scale_prior = params[:kernel_length_scale_prior],
-    kernel_std_prior = params[:kernel_amplitude_prior],
-    noise_std = params[:noise_std],
-    x_dim = params[:x_dim],
-    y_dim = params[:y_dim],
-)
+sample_fn = getfield(Main, params[:sample_fn])()
 
 
 ## Train TNP
@@ -86,8 +84,9 @@ lrs, losses, avg_losses = train_model!(model, sample_fn;
 
 ## Save Results
 @info "Saving results ..."
-
 run_name = savename(params)
+@info "Run name: $run_name"
+
 model_path = joinpath(datadir("train"), "model_" *run_name * ".pt")
 data_path = joinpath(datadir("train"), "data_" * run_name * ".jld2")
 

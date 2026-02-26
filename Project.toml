@@ -2,17 +2,21 @@ name = "tnp_benchmarks"
 authors = ["Šimon Soldát"]
 
 [deps]
+ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 BOSIP = "631834c2-07fe-4b6b-876a-15b6a4e37445"
 BOSS = "15052f3f-a82a-4ca3-bbc4-f478a3bd1ae2"
 Bijectors = "76274a88-744f-5084-9051-94815aaf08c4"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+KernelFunctions = "ec8451be-7e33-11e9-00cf-bbf324bd1392"
 OptimizationPRIMA = "72f8369c-a2ea-4298-9126-56167ce9cbc2"
 PyTNP = "85852e71-9429-41d1-823f-6fff6908b212"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [compat]
 DrWatson = "2.19.1"

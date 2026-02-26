@@ -22,82 +22,37 @@ problem = ABProblem()
 # subdir = "test"
 subdir = "alpha"
 
+## Use GP Model
 
-## Load TNP Model
-
-# TODO
-# const DIM_MODEL = parse(Int, ARGS[1]) # e.g. 128
-# const DIM_FEEDFORWARD = 2 * DIM_MODEL
-# const NUM_ITERATIONS = parse(Int, ARGS[2]) # e.g. 10_000
-const DIM_MODEL = 128
-const DIM_FEEDFORWARD = 2 * DIM_MODEL
-const NUM_ITERATIONS = 100_000
-
-println("Running BOSIP with pre-trained TNP model with dim_model = $DIM_MODEL, num_iterations = $NUM_ITERATIONS")
+# model_params = Dict(
+#     :mean => prior_mean(problem),
+#     :kernel => BOSS.GaussianKernel(),
+#     # :kernel => BOSS.Matern32Kernel(),
+#     # :kernel => BOSS.Matern52Kernel(),
+#     :lengthscale_priors => get_lengthscale_priors(problem),
+#     :amplitude_priors => get_amplitude_priors(problem),
+#     :noise_std_priors => get_noise_std_priors(problem),
+#     # :noise_std_priors => [Uniform(0.1, 1.)],
+# )
+# model_params[:kernel_name] = string(typeof(model_params[:kernel]).name.name)
 
 model_params = Dict(
-    # TODO
-    # :note => "TEST",
-    :note => "v1+lhc-sampler",
-
-    # Universe Settings
-    :x_dim => 2,
-    :y_dim => 1,
-
-    # Model Settings
-    :dim_model => DIM_MODEL,
-    :embedder_depth => 4,
-    :predictor_depth => 2,
-    :num_heads => 8,
-    :encoder_depth => 6,
-    :dim_feedforward => DIM_FEEDFORWARD,
-    :dropout => 0.0,
-    :device => "cuda",
-
-    # Prior Data Settings
-    :sample_fn => :lhc_data_sampler,
-    # :sample_fn => :default_data_sampler,
-
-    # Training Settings
-    :num_iterations => NUM_ITERATIONS,
+    :note => "bayesian-inference",
+    :mean => nothing,
+    :kernel => BOSS.GaussianKernel(),
+    :lengthscale_priors => fill(Product(fill(Uniform(0.1, 1.0), 2)), y_dim(problem)),
+    :amplitude_priors => fill(Uniform(0.1, 1.0), y_dim(problem)),
+    :noise_std_priors => fill(Dirac(1e-6), y_dim(problem)),
 )
+model_params[:kernel_name] = string(typeof(model_params[:kernel]).name.name)
 
-tnp = load_model(model_params;
-    mode = DefaultMode(),
-    # mode = KNNMode(10)
-    # base_model = :default,
-    base_model = :structured,
+model = GaussianProcess(;
+    mean = model_params[:mean],
+    kernel = model_params[:kernel],
+    lengthscale_priors = model_params[:lengthscale_priors],
+    amplitude_priors = model_params[:amplitude_priors],
+    noise_std_priors = model_params[:noise_std_priors],
 )
-model_params[:mode] = mode
-
-function tnp_predict(x::AbstractVector{<:Real}, data::ExperimentData)
-    y_dim = size(data.Y, 1)
-    μ = Vector{Float64}(undef, y_dim)
-    σ = Vector{Float64}(undef, y_dim)
-    
-    for d in 1:y_dim
-        μs, σs = PyTNP.predict(tnp, data.X, data.Y[d:d, :], hcat(x))
-        μ[d] = μs[1]
-        σ[d] = σs[1]
-    end
-    
-    return μ, σ
-end
-function tnp_predict(X::AbstractMatrix{<:Real}, data::ExperimentData)
-    y_dim = size(data.Y, 1)
-    n_points = size(X, 2)
-    μ = Matrix{Float64}(undef, y_dim, n_points)
-    σ = Matrix{Float64}(undef, y_dim, n_points)
-    
-    for d in 1:y_dim
-        μs, σs = PyTNP.predict(tnp, data.X, data.Y[d:d, :], X)
-        μ[d, :] = μs
-        σ[d, :] = σs
-    end
-    
-    return μ, σ
-end
-model = BlackboxModel(tnp_predict)
 
 
 ## Define BOSIP Problem
@@ -151,11 +106,20 @@ metric_cb = MetricCallback(;
 ## Run BOSIP
 @info "Running BOSIP ..."
 
-model_fitter = OptimizationMAP(;
-    algorithm = NEWUOA(),
-    multistart = 24,
-    parallel = false,
-    rhoend = 1e-4,
+# TODO
+# model_fitter = OptimizationMAP(;
+#     algorithm = NEWUOA(),
+#     multistart = 24,
+#     parallel = false,
+#     rhoend = 1e-4,
+# )
+model_fitter = TuringBI(;
+    sampler = NUTS(),
+    warmup = 400,
+    samples_in_chain = 20,
+    chain_count = 8,
+    leap_size = 5,
+    parallel = true,
 )
 
 acq_maximizer = OptimizationAM(;
@@ -169,7 +133,7 @@ term_cond = DataLimit(bosip_params[:max_data])
 
 bosip!(bosip; model_fitter, acq_maximizer, term_cond,
     options = BosipOptions(;
-        callback = metric_cb, # TODO
+        callback = metric_cb,
     ),
 )
 
