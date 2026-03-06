@@ -1,8 +1,8 @@
 
 function load_model(params::Dict;
     info = true,
-    dir=datadir("train"),
-    prefix="model_",
+    dir = datadir("train"),
+    prefix = "model_",
     mode = DefaultMode(),   # DefaultMode(), KNNMode(k)
     base_model = :default,  # :default, :structured
 )
@@ -14,5 +14,13 @@ function load_model(params::Dict;
     
     tnp = PyTNP.load_model(model_path; mode, base_model)
     info && println("Loaded model from $(model_path)")
+    return tnp
+end
+
+function load_model(model_path::String; mode = DefaultMode(), base_model = :default)
+    !isfile(model_path) && error("Model file not found at $(model_path)")
+    
+    tnp = PyTNP.load_model(model_path; mode, base_model)
+    println("Loaded model from $(model_path)")
     return tnp
 end

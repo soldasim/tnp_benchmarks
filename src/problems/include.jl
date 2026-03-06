@@ -1,1 +1,6 @@
 include("ab.jl")
+include("sir.jl")
+include("banana.jl")
+include("bimodal.jl")
+include("duffing.jl")
+include("diffusion.jl")

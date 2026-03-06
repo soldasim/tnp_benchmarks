@@ -5,8 +5,8 @@ function BOSS.mean_and_std(models::Vector{<:ModelPosterior}, x::AbstractVector{<
     mus = getindex.(vals, 1)
     vars = getindex.(vals, 2)
 
-    m = mean(mus)
-    v = mean(vars) + var(mus)
+    m = Distributions.mean(mus)
+    v = Distributions.mean(vars) + var(mus)
     s = sqrt.(v)
     return m, s
 end
@@ -23,6 +23,7 @@ function plot_results(bosip::BosipProblem;
 	colormap::Symbol = :viridis,
 	display::Bool = true,
 	show_contour::Bool = false,
+    highlight_last::Bool = false,
 )
 	x_dim = BOSIP.x_dim(bosip)
 	y_dim = BOSIP.y_dim(bosip)
@@ -101,6 +102,7 @@ function plot_results(bosip::BosipProblem;
 		ax_true = Axis(fig[row, 1]; title="True simulator ($y_label)", xlabel="x1", ylabel="x2")
 		hm_true = heatmap!(ax_true, xs_1, xs_2, Z_true[i]; colormap)
 		scatter!(ax_true, data_X[1, :], data_X[2, :]; color=:white, markersize=10, strokecolor=:black, strokewidth=2)
+        highlight_last && scatter!(ax_true, data_X[1, end], data_X[2, end]; color=:red, markersize=12, strokecolor=:black, strokewidth=2)
 		if show_contour
 			contour!(ax_true, xs_1, xs_2, Z_model[i]; levels=[z_obs[i]], color=:red, linewidth=2)
 		end
@@ -109,6 +111,7 @@ function plot_results(bosip::BosipProblem;
 		ax_model = Axis(fig[row, 3]; title="Model prediction ($y_label)", xlabel="x1", ylabel="x2")
 		hm_model = heatmap!(ax_model, xs_1, xs_2, Z_model[i]; colormap)
 		scatter!(ax_model, data_X[1, :], data_X[2, :]; color=:white, markersize=10, strokecolor=:black, strokewidth=2)
+        highlight_last && scatter!(ax_model, data_X[1, end], data_X[2, end]; color=:red, markersize=12, strokecolor=:black, strokewidth=2)
 		if show_contour
 			contour!(ax_model, xs_1, xs_2, Z_model[i]; levels=[z_obs[i]], color=:red, linewidth=2)
 		end
@@ -117,6 +120,7 @@ function plot_results(bosip::BosipProblem;
 		ax_model_std = Axis(fig[row, 5]; title="Model std ($y_label)", xlabel="x1", ylabel="x2")
 		hm_model_std = heatmap!(ax_model_std, xs_1, xs_2, Z_model_std[i]; colormap)
 		scatter!(ax_model_std, data_X[1, :], data_X[2, :]; color=:white, markersize=10, strokecolor=:black, strokewidth=2)
+        highlight_last && scatter!(ax_model_std, data_X[1, end], data_X[2, end]; color=:red, markersize=12, strokecolor=:black, strokewidth=2)
 		if show_contour
 			contour!(ax_model_std, xs_1, xs_2, Z_model[i]; levels=[z_obs[i]], color=:red, linewidth=2)
 		end
@@ -129,14 +133,17 @@ function plot_results(bosip::BosipProblem;
 	ax_post_true = Axis(fig[post_row, 1]; title="True posterior", xlabel="x1", ylabel="x2")
 	heatmap!(ax_post_true, xs_1, xs_2, Z_post_true; colormap)
 	scatter!(ax_post_true, data_X[1, :], data_X[2, :]; color=:white, markersize=10, strokecolor=:black, strokewidth=2)
+    highlight_last && scatter!(ax_post_true, data_X[1, end], data_X[2, end]; color=:red, markersize=12, strokecolor=:black, strokewidth=2)
 
 	ax_post_est = Axis(fig[post_row, 3]; title="Estimated posterior", xlabel="x1", ylabel="x2")
 	heatmap!(ax_post_est, xs_1, xs_2, Z_post_est; colormap)
 	scatter!(ax_post_est, data_X[1, :], data_X[2, :]; color=:white, markersize=10, strokecolor=:black, strokewidth=2)
+    highlight_last && scatter!(ax_post_est, data_X[1, end], data_X[2, end]; color=:red, markersize=12, strokecolor=:black, strokewidth=2)
 
 	ax_post_std = Axis(fig[post_row, 5]; title="Posterior std", xlabel="x1", ylabel="x2")
 	heatmap!(ax_post_std, xs_1, xs_2, Z_post_std; colormap)
 	scatter!(ax_post_std, data_X[1, :], data_X[2, :]; color=:white, markersize=10, strokecolor=:black, strokewidth=2)
+    highlight_last && scatter!(ax_post_std, data_X[1, end], data_X[2, end]; color=:red, markersize=12, strokecolor=:black, strokewidth=2)
 
 	display && CairoMakie.display(fig)
 	return fig

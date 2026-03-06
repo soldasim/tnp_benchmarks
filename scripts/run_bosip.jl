@@ -10,53 +10,65 @@ using Turing
 using ADTypes
 
 using Random
+# TODO
 Random.seed!(555)
+# Random.seed!(1234)
 
 include(srcdir("include.jl"))
 
 
-## Select Toy Problem & Run Name
-problem = ABProblem()
-
 # TODO
-# subdir = "test"
-subdir = "alpha"
+subdir = "test"
+# subdir = "beta"
 
 
 ## Load TNP Model
 
 # TODO
-# const DIM_MODEL = parse(Int, ARGS[1]) # e.g. 128
-# const DIM_FEEDFORWARD = 2 * DIM_MODEL
-# const NUM_ITERATIONS = parse(Int, ARGS[2]) # e.g. 10_000
-const DIM_MODEL = 128
+const NUM_ITERATIONS = parse(Int, ARGS[1]) # e.g. 10_000
+const BASE_MODEL = ARGS[2] # :default, :structured
+const SAMPLE_FN = ARGS[3] # :default_data_sampler, :lhc_data_sampler
+
+const ENCODER_DEPTH = parse(Int, ARGS[4]) # e.g. 6
+const DIM_MODEL = parse(Int, ARGS[5]) # e.g. 128
 const DIM_FEEDFORWARD = 2 * DIM_MODEL
-const NUM_ITERATIONS = 100_000
+
+const X_DIM = parse(Int, ARGS[6]) # e.g. 2
+
+const NOTE = ARGS[7] # e.g. "TEST", "log-softmax1", "no-softmax1"
+
+const PROBLEM = ARGS[8] # e.g. ABProblem, SIRProblem, BananaProblem, BimodalProblem
+
+## Select Toy Problem & Run Name
+problem = getfield(Main, Symbol(PROBLEM))()
 
 println("Running BOSIP with pre-trained TNP model with dim_model = $DIM_MODEL, num_iterations = $NUM_ITERATIONS")
 
 model_params = Dict(
     # TODO
-    # :note => "TEST",
-    :note => "v1+lhc-sampler",
+    :note => NOTE,
 
     # Universe Settings
-    :x_dim => 2,
+    :x_dim => X_DIM,
     :y_dim => 1,
 
+    # Model Implementation
+    :base_model => Symbol(BASE_MODEL),
+
     # Model Settings
+    # :dim_model => 128,
     :dim_model => DIM_MODEL,
     :embedder_depth => 4,
     :predictor_depth => 2,
     :num_heads => 8,
-    :encoder_depth => 6,
+    :encoder_depth => ENCODER_DEPTH,
+    # :dim_feedforward => 128,
     :dim_feedforward => DIM_FEEDFORWARD,
     :dropout => 0.0,
     :device => "cuda",
 
     # Prior Data Settings
-    :sample_fn => :lhc_data_sampler,
-    # :sample_fn => :default_data_sampler,
+    :sample_fn => Symbol(SAMPLE_FN),
 
     # Training Settings
     :num_iterations => NUM_ITERATIONS,
@@ -65,10 +77,9 @@ model_params = Dict(
 tnp = load_model(model_params;
     mode = DefaultMode(),
     # mode = KNNMode(10)
-    # base_model = :default,
-    base_model = :structured,
+    base_model = Symbol(BASE_MODEL),
+    dir = joinpath(datadir("train"), subdir),
 )
-model_params[:mode] = mode
 
 function tnp_predict(x::AbstractVector{<:Real}, data::ExperimentData)
     y_dim = size(data.Y, 1)
@@ -175,6 +186,8 @@ bosip!(bosip; model_fitter, acq_maximizer, term_cond,
 
 
 ## Save Results
+subdir = joinpath(subdir, PROBLEM)
+
 @info "Saving results ..."
 run_name = savename(model_params)
 @info "Run name: $run_name"
@@ -189,7 +202,7 @@ data = Dict(
     :bosip_path => bosip_path,
     :data_path => data_path,
 )
-@tag_with_deps! data
+@tag_with_deps! data storepatch=true
 
 wsave(data_path, data)
 mkpath(dirname(bosip_path))

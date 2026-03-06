@@ -15,12 +15,13 @@ Random.seed!(555)
 include(srcdir("include.jl"))
 
 
-## Select Toy Problem & Run Name
-problem = ABProblem()
+const PROBLEM = ARGS[1] # e.g. ABProblem, SIRProblem, BananaProblem, BimodalProblem
+
+problem = getfield(Main, Symbol(PROBLEM))() # e.g. ABProblem, SIRProblem, BananaProblem, BimodalProblem
 
 # TODO
-# subdir = "test"
-subdir = "alpha"
+subdir = "test"
+# subdir = "beta"
 
 ## Use GP Model
 
@@ -40,7 +41,7 @@ model_params = Dict(
     :note => "bayesian-inference",
     :mean => nothing,
     :kernel => BOSS.GaussianKernel(),
-    :lengthscale_priors => fill(Product(fill(Uniform(0.1, 1.0), 2)), y_dim(problem)),
+    :lengthscale_priors => fill(Product(fill(Uniform(0.1, 1.0), x_dim(problem))), y_dim(problem)),
     :amplitude_priors => fill(Uniform(0.1, 1.0), y_dim(problem)),
     :noise_std_priors => fill(Dirac(1e-6), y_dim(problem)),
 )
@@ -139,6 +140,8 @@ bosip!(bosip; model_fitter, acq_maximizer, term_cond,
 
 
 ## Save Results
+subdir = joinpath(subdir, PROBLEM)
+
 @info "Saving results ..."
 run_name = savename(model_params)
 @info "Run name: $run_name"
@@ -153,7 +156,7 @@ data = Dict(
     :bosip_path => bosip_path,
     :data_path => data_path,
 )
-@tag_with_deps! data
+@tag_with_deps! data storepatch=true
 
 wsave(data_path, data)
 mkpath(dirname(bosip_path))
@@ -161,10 +164,12 @@ mkpath(dirname(bosip_path))
 
 
 ## Plots
-@info "Plotting ..."
+if x_dim(problem) == 2
+    @info "Plotting ..."
 
-plot_path = joinpath(plotsdir("bosip"), subdir, "bosip_" * run_name * ".png")
+    plot_path = joinpath(plotsdir("bosip"), subdir, "bosip_" * run_name * ".png")
 
-fig = plot_results(bosip)
-mkpath(dirname(plot_path))
-save(plot_path, fig)
+    fig = plot_results(bosip)
+    mkpath(dirname(plot_path))
+    save(plot_path, fig)
+end

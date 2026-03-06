@@ -1,5 +1,6 @@
 using DrWatson
 using Pkg
+using Dates
 
 """
     @tag_with_deps! dict
@@ -55,7 +56,10 @@ function tag_with_deps!(dict::AbstractDict{K,T};
         info = get_dep_info(dep; kwargs...)
         deps_info[dep.name] = info
     end
-    dict[:deps] = deps_info
+    dict[K(:deps)] = deps_info
+
+    # save current date-time
+    dict[K(:time)] = now()
 
     return dict
 end
